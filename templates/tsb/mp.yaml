@@ -1,0 +1,12 @@
+apiVersion: install.tetrate.io/v1alpha1
+kind: ManagementPlane
+metadata:
+  name: managementplane
+  namespace: tsb
+spec:
+  hub: <registry-location>
+  components:
+    apiServer:
+      teamSyncSchedule: 0 * * * *
+    frontEnvoy:
+      port: 443

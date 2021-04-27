@@ -1,0 +1,11 @@
+tmp-cert/
+generated/
+login.txt
+setenv.sh
+.secrets/
+.certs/
+kubectl
+oc
+openshift-install
+openshift-login.txt
+pull-secret

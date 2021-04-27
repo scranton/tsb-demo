@@ -1,0 +1,27 @@
+apiVersion: gateway.tsb.tetrate.io/v2
+kind: IngressGateway
+metadata:
+  displayName: bookinfo-gw-ingress
+  group: bookinfo-gw
+  name: bookinfo-gw-ingress
+  organization: tetrate
+  tenant: tetrate
+  workspace: bookinfo-ws
+spec:
+  displayName: bookinfo-gw-ingress
+  http:
+  - hostname: bookinfo.tetrate.com
+    name: bookinfo
+    port: 8443
+    routing:
+      rules:
+      - route:
+          host: bookinfo/productpage.bookinfo.svc.cluster.local
+          port: 9080
+    tls:
+      mode: SIMPLE
+      secretName: bookinfo-certs
+  workloadSelector:
+    labels:
+      app: tsb-gateway-bookinfo
+    namespace: bookinfo

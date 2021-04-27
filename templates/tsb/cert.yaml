@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tsb-certs
+  namespace: tsb
+spec:
+  secretName: tsb-certs
+  issuerRef:
+    # Must match ClusterIssuer
+    name: letsencrypt-gke
+    kind: ClusterIssuer
+  dnsNames:
+  - example.com

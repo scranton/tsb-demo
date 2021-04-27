@@ -1,0 +1,16 @@
+apiVersion: install.tetrate.io/v1alpha1
+kind: ControlPlane
+metadata:
+  name: control-plane
+  namespace: istio-system
+spec:
+  hub: <registry-location>
+  telemetryStore:
+    elastic:
+      host: <elastic-hostname-or-ip>
+      port: 443
+  managementPlane:
+    host: <tsb-address>
+    port: 443
+    clusterName: <cluster-name>
+  meshExpansion: {}
