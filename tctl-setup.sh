@@ -3,15 +3,16 @@
 # Installs tctl cli tool and primes Docker Repo
 
 # Get directory this script is located in to access script local files
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+readonly script_dir
 
-source "${SCRIPT_DIR}/setenv.sh"
+source "${script_dir}/setenv.sh"
 
 set -u
 
 # Install and Prep TSB CLI and Registry
 
-curl -Lo "${HOME}/bin/tctl" "https://tetrate.bintray.com/getcli/${TSB_VERSION}/darwin/amd64/tctl"
+curl -Lo "${HOME}/bin/tctl" "https://binaries.dl.tetrate.io/public/raw/versions/darwin-amd64-${TSB_VERSION}/tctl"
 chmod +x "${HOME}/bin/tctl"
 
 tctl install image-sync \
