@@ -33,7 +33,8 @@ gcloud services enable container.googleapis.com \
 
 # Create MGMT GKE Cluster
 (
-gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${MGMT_GKE_CLUSTER_NAME}" \
+gcloud beta container clusters create "${MGMT_GKE_CLUSTER_NAME}" \
+  --project="${GCP_PROJECT_ID}" \
   --zone="${MGMT_GKE_CLUSTER_ZONE}" \
   --no-enable-basic-auth \
   --release-channel='regular' \
@@ -52,7 +53,8 @@ gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${MGMT_GKE_
 
 # Create APP1 GKE Cluster
 (
-gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${APP1_GKE_CLUSTER_NAME}" \
+gcloud beta container clusters create "${APP1_GKE_CLUSTER_NAME}" \
+  --project="${GCP_PROJECT_ID}" \
   --zone="${APP1_GKE_CLUSTER_ZONE}" \
   --no-enable-basic-auth \
   --release-channel='regular' \
@@ -71,7 +73,8 @@ gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${APP1_GKE_
 
 # Create APP2 GKE Cluster
 (
-gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${APP2_GKE_CLUSTER_NAME}" \
+gcloud beta container clusters create "${APP2_GKE_CLUSTER_NAME}" \
+  --project="${GCP_PROJECT_ID}" \
   --zone="${APP2_GKE_CLUSTER_ZONE}" \
   --no-enable-basic-auth \
   --release-channel='regular' \
@@ -86,6 +89,24 @@ gcloud beta container --project="${GCP_PROJECT_ID}" clusters create "${APP2_GKE_
   --no-issue-client-certificate \
   --no-enable-master-authorized-networks \
   --image-type='COS_CONTAINERD'
+)&
+
+# Create APP3 AKS Cluster
+(
+az group create \
+  --name "${APP3_AKS_RESOURCE_GROUP}" \
+  --location "${APP3_AKS_REGION}"
+
+az aks create \
+  --resource-group "${APP3_AKS_RESOURCE_GROUP}" \
+  --name "${APP3_K8S_CLUSTER_NAME}" \
+  --node-count 2 \
+  --node-vm-size 'Standard_D4_v3' \
+  --enable-addons 'monitoring' \
+  --generate-ssh-keys \
+  --enable-cluster-autoscaler \
+  --min-count 1 \
+  --max-count 5
 )&
 
 wait

@@ -337,10 +337,12 @@ kubectl apply --filename="${gen_mgmt_dir}/ingress.yaml"
 
 printInfo 'Configuring DNS for Tier1 Gateway...'
 
-readonly bookinfo_ip_old=$(nslookup "${BOOKINFO_FQDN}" | grep 'Address:' | tail -n1 | awk '{print $2}')
+bookinfo_ip_old=$(nslookup "${BOOKINFO_FQDN}" | grep 'Address:' | tail -n1 | awk '{print $2}')
+readonly bookinfo_ip_old
 
 printWaiting 'Waiting for bookinfo IP...'
-readonly bookinfo_ip=$(getServiceAddress tsb-gateway-bookinfo bookinfo)
+bookinfo_ip=$(getServiceAddress tsb-gateway-bookinfo bookinfo)
+readonly bookinfo_ip
 
 printf "\nbookinfo_ip_old = %s\n" "${bookinfo_ip_old}"
 printf "bookinfo_ip = %s\n\n" "${bookinfo_ip}"

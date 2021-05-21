@@ -15,15 +15,9 @@ source "${script_dir}/helpers/common_scripts.bash"
 set -u
 trap print_error ERR
 
-declare -ar gen_dirs=("${script_dir}/generated/app1" "${script_dir}/generated/app2")
-
-for d in "${gen_dirs[@]}"; do
-  mkdir -p "$d"
-done
-
-declare -ar gke_cluster_names=("${APP1_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_NAME}")
-declare -ar gke_cluster_zones=("${APP1_GKE_CLUSTER_ZONE}" "${APP2_GKE_CLUSTER_ZONE}")
-declare -ar tsb_cluster_names=("${APP1_TSB_CLUSTER_NAME}" "${APP2_TSB_CLUSTER_NAME}")
+mkdir -p "${script_dir}/generated/app1"
+mkdir -p "${script_dir}/generated/app2"
+mkdir -p "${script_dir}/generated/app3"
 
 # Install TSB Control Plane (aka Istio) into APP GKE Cluster
 
@@ -62,6 +56,16 @@ spec:
   tokenTtl: "8760h"
   locality:
     region: ${APP2_TSB_CLUSTER_REGION}
+---
+apiVersion: api.tsb.tetrate.io/v2
+kind: Cluster
+metadata:
+  organization: ${TSB_ORGANIZATION}
+  name: ${APP3_TSB_CLUSTER_NAME}
+spec:
+  tokenTtl: "8760h"
+  locality:
+    region: ${APP3_TSB_CLUSTER_REGION}
 ---
 apiVersion: api.tsb.tetrate.io/v2
 kind: Tenant
@@ -165,9 +169,9 @@ tctl apply -f "${gen_mgmt_dir}/tsb.yaml"
 # Get Bookinfo cert (secret) from Mgmt cluster to put into App clusters
 
 readonly certs_dir="${script_dir}/generated/certs"
-
 mkdir -p "${certs_dir}"
 
+# TODO cleanup Bookinfo CERT sharing across cluster. look at cloud key managers
 kubectl get secrets bookinfo-certs \
   --namespace='bookinfo' \
   --output='json' >"${certs_dir}/bookinfo-cert.json"
@@ -184,9 +188,9 @@ mgmt_cp_json=$(
 )
 readonly mgmt_cp_json
 
-for i in "${!tsb_cluster_names[@]}"; do
-  cluster_name=${tsb_cluster_names[$i]}
-  gen_dir=${gen_dirs[$i]}
+function tsb_gen_cluster_config() {
+  local cluster_name=$1
+  local gen_dir=$2
 
   tctl install manifest cluster-operators \
     --registry "${DOCKER_REGISTRY}" \
@@ -199,18 +203,33 @@ for i in "${!tsb_cluster_names[@]}"; do
     --xcp-certs="$(tctl install cluster-certs --cluster="${cluster_name}")" \
     --cluster="${cluster_name}" \
     >"${gen_dir}/controlplane-secrets.yaml"
-done
+}
 
-for i in "${!tsb_cluster_names[@]}"; do
-  gke_cluster_name=${gke_cluster_names[$i]}
-  gke_cluster_zone=${gke_cluster_zones[$i]}
-  tsb_cluster_name=${tsb_cluster_names[$i]}
-  gen_dir=${gen_dirs[$i]}
+tsb_gen_cluster_config "${APP1_TSB_CLUSTER_NAME}" "${script_dir}/generated/app1"
+tsb_gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
+tsb_gen_cluster_config "${APP3_TSB_CLUSTER_NAME}" "${script_dir}/generated/app3"
 
-  # Get APP GKE cluster k8s context
-  gcloud container clusters get-credentials "${gke_cluster_name}" \
-    --project="${GCP_PROJECT_ID}" \
-    --zone="${gke_cluster_zone}"
+function tsb_apply_cluster_config() {
+  local tsb_cluster_name=$1
+  local k8s_cluster_type=$2
+  local k8s_cluster_name=$3
+  local k8s_cluster_zone=$4
+  local gen_dir=$5
+
+  # Get APP cluster k8s context
+  case ${k8s_cluster_type} in
+    gke)
+      gcloud container clusters get-credentials "${k8s_cluster_name}" \
+        --project="${GCP_PROJECT_ID}" \
+        --zone="${k8s_cluster_zone}"
+      ;;
+
+    aks)
+      az aks get-credentials \
+        --name "${k8s_cluster_name}" \
+        --resource-group "${APP3_AKS_RESOURCE_GROUP}"
+      ;;
+  esac
 
   # Copy Shared CA from getistio
   kubectl create namespace istio-system
@@ -223,7 +242,7 @@ for i in "${!tsb_cluster_names[@]}"; do
 
   kubectl apply --filename="${gen_dir}/clusteroperators.yaml"
 
-  printWaiting "Waiting for TSB APP$i ControlPlane to be deployed..."
+  printWaiting "Waiting for TSB ${tsb_cluster_name} ControlPlane to be deployed..."
   kubectl wait deployment/tsb-operator-control-plane \
     --namespace='istio-system' \
     --for='condition=Available' \
@@ -290,4 +309,8 @@ EOF
   curl --silent --verbose "https://${BOOKINFO_FQDN}/productpage" \
     --resolve "${BOOKINFO_FQDN}:443:${bookinfo_gateway_ip}" \
     | grep --only-matching '<title>.*</title>'
-done
+}
+
+tsb_apply_cluster_config "${APP1_TSB_CLUSTER_NAME}" 'gke' "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app1"
+tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'gke' "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app2"
+tsb_apply_cluster_config "${APP3_TSB_CLUSTER_NAME}" 'aks' "${APP3_K8S_CLUSTER_NAME}" "${APP3_AKS_REGION}"       "${script_dir}/generated/app3"

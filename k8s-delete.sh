@@ -52,5 +52,14 @@ delete_gke_cluster "${GCP_PROJECT_ID}" "${MGMT_GKE_CLUSTER_NAME}" "${MGMT_GKE_CL
 delete_gke_cluster "${GCP_PROJECT_ID}" "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}"
 delete_gke_cluster "${GCP_PROJECT_ID}" "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}"
 
+az aks delete \
+  --resource-group "${APP3_AKS_RESOURCE_GROUP}" \
+  --name "${APP3_K8S_CLUSTER_NAME}" \
+  --yes
+
+az group delete \
+  --name "${APP3_AKS_RESOURCE_GROUP}" \
+  --yes
+
 # Cleanup script generated files
 rm -rf "${SCRIPT_DIR}/generated"

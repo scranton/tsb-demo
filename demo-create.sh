@@ -15,7 +15,7 @@ source "${script_dir}/helpers/common_scripts.bash"
 set -u
 trap print_error ERR
 
-printInfo 'Creating GCP Resources...'
+printInfo 'Creating K8S Resources...'
 bash -c "${script_dir}/k8s-create.sh"
 
 printInfo 'Configuring TSB Management Cluster...'
