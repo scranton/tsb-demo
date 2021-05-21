@@ -3,9 +3,10 @@
 # Delete GKE resouces
 
 # Get directory this script is located in to access script local files
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+readonly script_dir
 
-source "${SCRIPT_DIR}/setenv.sh"
+source "${script_dir}/setenv.sh"
 
 delete_gke_cluster() {
   local project="$1"
@@ -36,7 +37,7 @@ delete_gke_cluster() {
   done
 
   # Cleanup GCP network resources
-  PROJECT="${project}" REGION="${region}" GKE_CLUSTER_NAME="${name}" bash -c "${SCRIPT_DIR}/helpers/delete-orphaned-kube-network-resources.sh"
+  PROJECT="${project}" REGION="${region}" GKE_CLUSTER_NAME="${name}" bash -c "${script_dir}/helpers/delete-orphaned-kube-network-resources.sh"
 }
 
 set -u
@@ -46,20 +47,20 @@ set -u
 #   --project="${GCP_PROJECT_ID}" \
 #   --zone="${MGMT_GKE_CLUSTER_ZONE}"
 
-# bash -c "${SCRIPT_DIR}/helpers/revoke_cert.sh"
+# bash -c "${script_dir}/helpers/revoke_cert.sh"
 
 delete_gke_cluster "${GCP_PROJECT_ID}" "${MGMT_GKE_CLUSTER_NAME}" "${MGMT_GKE_CLUSTER_ZONE}"
 delete_gke_cluster "${GCP_PROJECT_ID}" "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}"
-delete_gke_cluster "${GCP_PROJECT_ID}" "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}"
+# delete_gke_cluster "${GCP_PROJECT_ID}" "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}"
 
 az aks delete \
-  --resource-group "${APP3_AKS_RESOURCE_GROUP}" \
-  --name "${APP3_K8S_CLUSTER_NAME}" \
+  --resource-group "${APP2_AKS_RESOURCE_GROUP}" \
+  --name "${APP2_K8S_CLUSTER_NAME}" \
   --yes
 
 az group delete \
-  --name "${APP3_AKS_RESOURCE_GROUP}" \
+  --name "${APP2_AKS_RESOURCE_GROUP}" \
   --yes
 
 # Cleanup script generated files
-rm -rf "${SCRIPT_DIR}/generated"
+rm -rf "${script_dir}/generated"

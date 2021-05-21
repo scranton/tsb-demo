@@ -58,16 +58,6 @@ spec:
     region: ${APP2_TSB_CLUSTER_REGION}
 ---
 apiVersion: api.tsb.tetrate.io/v2
-kind: Cluster
-metadata:
-  organization: ${TSB_ORGANIZATION}
-  name: ${APP3_TSB_CLUSTER_NAME}
-spec:
-  tokenTtl: "8760h"
-  locality:
-    region: ${APP3_TSB_CLUSTER_REGION}
----
-apiVersion: api.tsb.tetrate.io/v2
 kind: Tenant
 metadata:
   organization: ${TSB_ORGANIZATION}
@@ -206,8 +196,8 @@ function tsb_gen_cluster_config() {
 }
 
 tsb_gen_cluster_config "${APP1_TSB_CLUSTER_NAME}" "${script_dir}/generated/app1"
+# tsb_gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
 tsb_gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
-tsb_gen_cluster_config "${APP3_TSB_CLUSTER_NAME}" "${script_dir}/generated/app3"
 
 function tsb_apply_cluster_config() {
   local tsb_cluster_name=$1
@@ -227,7 +217,8 @@ function tsb_apply_cluster_config() {
     aks)
       az aks get-credentials \
         --name "${k8s_cluster_name}" \
-        --resource-group "${APP3_AKS_RESOURCE_GROUP}"
+        --resource-group "${APP2_AKS_RESOURCE_GROUP}" \
+        --overwrite-existing
       ;;
   esac
 
@@ -312,5 +303,5 @@ EOF
 }
 
 tsb_apply_cluster_config "${APP1_TSB_CLUSTER_NAME}" 'gke' "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app1"
-tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'gke' "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app2"
-tsb_apply_cluster_config "${APP3_TSB_CLUSTER_NAME}" 'aks' "${APP3_K8S_CLUSTER_NAME}" "${APP3_AKS_REGION}"       "${script_dir}/generated/app3"
+# tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'gke' "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app2"
+tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'aks' "${APP2_K8S_CLUSTER_NAME}" "${APP2_K8S_CLUSTER_ZONE}" "${script_dir}/generated/app2"

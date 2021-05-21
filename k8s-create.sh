@@ -72,34 +72,34 @@ gcloud beta container clusters create "${APP1_GKE_CLUSTER_NAME}" \
 )&
 
 # Create APP2 GKE Cluster
-(
-gcloud beta container clusters create "${APP2_GKE_CLUSTER_NAME}" \
-  --project="${GCP_PROJECT_ID}" \
-  --zone="${APP2_GKE_CLUSTER_ZONE}" \
-  --no-enable-basic-auth \
-  --release-channel='regular' \
-  --machine-type='e2-standard-4' \
-  --metadata='disable-legacy-endpoints=true' \
-  --num-nodes=2 \
-  --enable-ip-alias \
-  --enable-autoscaling \
-  --min-nodes=0 \
-  --max-nodes=5 \
-  --enable-network-policy \
-  --no-issue-client-certificate \
-  --no-enable-master-authorized-networks \
-  --image-type='COS_CONTAINERD'
-)&
+# (
+# gcloud beta container clusters create "${APP2_GKE_CLUSTER_NAME}" \
+#   --project="${GCP_PROJECT_ID}" \
+#   --zone="${APP2_GKE_CLUSTER_ZONE}" \
+#   --no-enable-basic-auth \
+#   --release-channel='regular' \
+#   --machine-type='e2-standard-4' \
+#   --metadata='disable-legacy-endpoints=true' \
+#   --num-nodes=2 \
+#   --enable-ip-alias \
+#   --enable-autoscaling \
+#   --min-nodes=0 \
+#   --max-nodes=5 \
+#   --enable-network-policy \
+#   --no-issue-client-certificate \
+#   --no-enable-master-authorized-networks \
+#   --image-type='COS_CONTAINERD'
+# )&
 
-# Create APP3 AKS Cluster
+# Create APP2 AKS Cluster
 (
 az group create \
-  --name "${APP3_AKS_RESOURCE_GROUP}" \
-  --location "${APP3_AKS_REGION}"
+  --name "${APP2_AKS_RESOURCE_GROUP}" \
+  --location "${APP2_K8S_CLUSTER_ZONE}"
 
 az aks create \
-  --resource-group "${APP3_AKS_RESOURCE_GROUP}" \
-  --name "${APP3_K8S_CLUSTER_NAME}" \
+  --resource-group "${APP2_AKS_RESOURCE_GROUP}" \
+  --name "${APP2_K8S_CLUSTER_NAME}" \
   --node-count 2 \
   --node-vm-size 'Standard_D4_v3' \
   --enable-addons 'monitoring' \
