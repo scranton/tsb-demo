@@ -15,10 +15,11 @@ source "${script_dir}/helpers/common_scripts.bash"
 set -u
 trap print_trap_error ERR
 
-gateway_ip=$1
-
-if [[ -z ${gateway_ip} ]]; then
+if [[ $# -eq 0 ]]; then
+  k8s::set_context "${MGMT_K8S_TYPE}" "${MGMT_K8S_CLUSTER_NAME}" "${MGMT_K8S_CLUSTER_ZONE}"
   gateway_ip=$(k8s::get_service_address 'tsb-gateway-bookinfo' 'bookinfo')
+else
+  gateway_ip=$1
 fi
 
 printf '\ngateway_ip = %s\n\n' "${gateway_ip}"
