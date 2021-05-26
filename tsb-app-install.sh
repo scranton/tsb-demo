@@ -13,7 +13,7 @@ source "${script_dir}/setenv.sh"
 source "${script_dir}/helpers/common_scripts.bash"
 
 set -u
-trap print_error ERR
+trap print_trap_error ERR
 
 mkdir -p "${script_dir}/generated/app1"
 mkdir -p "${script_dir}/generated/app2"
@@ -22,9 +22,7 @@ mkdir -p "${script_dir}/generated/app3"
 # Install TSB Control Plane (aka Istio) into APP GKE Cluster
 
 # Set Kubernetes Current Context to the GKE MGMT Cluster
-gcloud container clusters get-credentials "${MGMT_GKE_CLUSTER_NAME}" \
-  --project="${GCP_PROJECT_ID}" \
-  --zone="${MGMT_GKE_CLUSTER_ZONE}"
+k8s::set_context "${MGMT_K8S_TYPE}" "${MGMT_K8S_CLUSTER_NAME}" "${MGMT_K8S_CLUSTER_ZONE}"
 
 # tctl login \
 #   --org="${TSB_ORGANIZATION}" \
@@ -178,7 +176,7 @@ mgmt_cp_json=$(
 )
 readonly mgmt_cp_json
 
-function tsb_gen_cluster_config() {
+function tsb::gen_cluster_config() {
   local cluster_name=$1
   local gen_dir=$2
 
@@ -195,11 +193,7 @@ function tsb_gen_cluster_config() {
     >"${gen_dir}/controlplane-secrets.yaml"
 }
 
-tsb_gen_cluster_config "${APP1_TSB_CLUSTER_NAME}" "${script_dir}/generated/app1"
-# tsb_gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
-tsb_gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
-
-function tsb_apply_cluster_config() {
+function tsb::apply_cluster_config() {
   local tsb_cluster_name=$1
   local k8s_cluster_type=$2
   local k8s_cluster_name=$3
@@ -207,20 +201,7 @@ function tsb_apply_cluster_config() {
   local gen_dir=$5
 
   # Get APP cluster k8s context
-  case ${k8s_cluster_type} in
-    gke)
-      gcloud container clusters get-credentials "${k8s_cluster_name}" \
-        --project="${GCP_PROJECT_ID}" \
-        --zone="${k8s_cluster_zone}"
-      ;;
-
-    aks)
-      az aks get-credentials \
-        --name "${k8s_cluster_name}" \
-        --resource-group "${APP2_AKS_RESOURCE_GROUP}" \
-        --overwrite-existing
-      ;;
-  esac
+  k8s::set_context "${k8s_cluster_type}" "${k8s_cluster_name}" "${k8s_cluster_zone}"
 
   # Copy Shared CA from getistio
   kubectl create namespace istio-system
@@ -233,7 +214,7 @@ function tsb_apply_cluster_config() {
 
   kubectl apply --filename="${gen_dir}/clusteroperators.yaml"
 
-  printWaiting "Waiting for TSB ${tsb_cluster_name} ControlPlane to be deployed..."
+  print_waiting "Waiting for TSB ${tsb_cluster_name} ControlPlane to be deployed..."
   kubectl wait deployment/tsb-operator-control-plane \
     --namespace='istio-system' \
     --for='condition=Available' \
@@ -266,7 +247,7 @@ spec:
 EOF
 
   # Edge is last thing to start
-  printWaiting 'Waiting for Istio control plane to be ready...'
+  print_waiting 'Waiting for Istio control plane to be ready...'
 
   # Loop on `kubectl rollout status` as it takes a while for deployment/envoy to
   # exist and then to complete
@@ -277,10 +258,6 @@ EOF
     attempts=$((attempts + 1))
     sleep 10s
   done
-  # until [[ $(kubectl get pod --namespace='istio-system' | grep -c Running) -eq 9 ]]; do
-  #   echo 'Waiting for Istio to deploy...'
-  #   sleep 5s
-  # done
 
   # Install Bookinfo Sample Application
   bash -c "${script_dir}/bookinfo-install.sh"
@@ -293,7 +270,7 @@ EOF
   cp "${script_dir}/templates/tsb/ingress.yaml" "${gen_dir}"
   kubectl apply --filename="${gen_dir}/ingress.yaml"
 
-  bookinfo_gateway_ip=$(getServiceAddress tsb-gateway-bookinfo bookinfo)
+  bookinfo_gateway_ip=$(k8s::get_service_address tsb-gateway-bookinfo bookinfo)
 
   printf '\nbookinfo_ingress_ip = %s\n\n' "${bookinfo_gateway_ip}"
 
@@ -302,6 +279,8 @@ EOF
     | grep --only-matching '<title>.*</title>'
 }
 
-tsb_apply_cluster_config "${APP1_TSB_CLUSTER_NAME}" 'gke' "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app1"
-# tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'gke' "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}" "${script_dir}/generated/app2"
-tsb_apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" 'aks' "${APP2_K8S_CLUSTER_NAME}" "${APP2_K8S_CLUSTER_ZONE}" "${script_dir}/generated/app2"
+tsb::gen_cluster_config "${APP1_TSB_CLUSTER_NAME}" "${script_dir}/generated/app1"
+tsb::gen_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${script_dir}/generated/app2"
+
+tsb::apply_cluster_config "${APP1_TSB_CLUSTER_NAME}" "${APP1_K8S_TYPE}" "${APP1_K8S_CLUSTER_NAME}" "${APP1_K8S_CLUSTER_ZONE}" "${script_dir}/generated/app1"
+tsb::apply_cluster_config "${APP2_TSB_CLUSTER_NAME}" "${APP2_K8S_TYPE}" "${APP2_K8S_CLUSTER_NAME}" "${APP2_K8S_CLUSTER_ZONE}" "${script_dir}/generated/app2"

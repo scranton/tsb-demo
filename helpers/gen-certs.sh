@@ -16,7 +16,7 @@ source "${script_dir}/../setenv.sh"
 source "${script_dir}/common_scripts.bash"
 
 set -u
-trap print_error ERR
+trap print_trap_error ERR
 
 readonly certs_dir=${CERTS_DIR}
 readonly secrets_dir=${SECRETS_DIR}

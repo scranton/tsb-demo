@@ -13,7 +13,7 @@ source "${script_dir}/setenv.sh"
 source "${script_dir}/helpers/common_scripts.bash"
 
 set -u
-trap print_error ERR
+trap print_trap_error ERR
 
 readonly APP_TSB_CLUSTER_NAME='tsb-app-openshift-gcp'
 readonly APP_TSB_CLUSTER_REGION='us-east4'
@@ -27,9 +27,9 @@ readonly OC_CMD="./oc"
 # Install TSB Control Plane (aka Istio) into APP Cluster
 
 # Set Kubernetes Current Context to the GKE MGMT Cluster
-gcloud container clusters get-credentials "${MGMT_GKE_CLUSTER_NAME}" \
+gcloud container clusters get-credentials "${MGMT_K8S_CLUSTER_NAME}" \
   --project="${GCP_PROJECT_ID}" \
-  --zone="${MGMT_GKE_CLUSTER_ZONE}"
+  --zone="${MGMT_K8S_CLUSTER_ZONE}"
 
 # Configure TSB
 cat <<EOF >"${gen_dir}/tsb.yaml"
@@ -96,7 +96,7 @@ ${OC_CMD} create secret generic cacerts \
 
 ${OC_CMD} apply --filename="${gen_dir}/clusteroperators.yaml"
 
-printWaiting 'Waiting for TSB APP ControlPlane to be deployed...'
+print_waiting 'Waiting for TSB APP ControlPlane to be deployed...'
 ${OC_CMD} wait deployment/tsb-operator-control-plane \
   --namespace='istio-system' \
   --for='condition=Available' \
@@ -167,7 +167,7 @@ spec:
 EOF
 
 # Edge is last thing to start
-printWaiting 'Waiting for Istio control plane to be ready...'
+print_waiting 'Waiting for Istio control plane to be ready...'
 
 # Loop on `kubectl rollout status` as it takes a while for deployment/envoy to
 # exist and then to complete
@@ -223,7 +223,7 @@ ${OC_CMD} --namespace='bookinfo' create secret tls 'bookinfo-certs' \
 cp "${script_dir}/templates/tsb/ingress.yaml" "${gen_dir}"
 ${OC_CMD} apply --filename="${gen_dir}/ingress.yaml"
 
-# bookinfo_gateway_ip=$(getServiceAddress tsb-gateway-bookinfo bookinfo)
+# bookinfo_gateway_ip=$(k8s::get_service_address tsb-gateway-bookinfo bookinfo)
 svc='tsb-gateway-bookinfo'
 ns='bookinfo'
 addr=""

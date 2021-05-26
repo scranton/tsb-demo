@@ -13,13 +13,13 @@ source "${script_dir}/setenv.sh"
 source "${script_dir}/helpers/common_scripts.bash"
 
 set -u
-trap print_error ERR
+trap print_trap_error ERR
 
-printInfo 'Creating K8S Resources...'
+print_info 'Creating K8S Resources...'
 bash -c "${script_dir}/k8s-create.sh"
 
-printInfo 'Configuring TSB Management Cluster...'
+print_info 'Configuring TSB Management Cluster...'
 bash -c "${script_dir}/tsb-mgmt-install.sh"
 
-printInfo 'Configuring TSB Application Clusters...'
+print_info 'Configuring TSB Application Clusters...'
 bash -c "${script_dir}/tsb-app-install.sh"

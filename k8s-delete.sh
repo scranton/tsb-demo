@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Delete GKE resouces
+# Delete K8s resouces
 
 # Get directory this script is located in to access script local files
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -8,59 +8,15 @@ readonly script_dir
 
 source "${script_dir}/setenv.sh"
 
-delete_gke_cluster() {
-  local project="$1"
-  local name="$2"
-  local zone="$3"
-  local region
-
-  # shellcheck disable=SC2001
-  region=$(echo "${zone}" | sed 's/\(.*\)-.*/\1/')
-
-  # Delete GKE Cluster
-  gcloud beta container clusters delete "${name}" \
-    --project="${project}" \
-    --zone="${zone}" \
-    --quiet
-
-  # Cleanup Persistent disk volumes
-  disk_list=$(
-    gcloud compute disks list \
-      --project="${project}" \
-      --filter="name ~ ${name} zone:( ${zone} )" \
-      --format='value(name)'
-  )
-  for i in ${disk_list}; do
-    gcloud compute --project="${project}" disks delete "$i" \
-      --zone="${zone}" \
-      --quiet
-  done
-
-  # Cleanup GCP network resources
-  PROJECT="${project}" REGION="${region}" GKE_CLUSTER_NAME="${name}" bash -c "${script_dir}/helpers/delete-orphaned-kube-network-resources.sh"
-}
+# Load shared functions
+source "${script_dir}/helpers/common_scripts.bash"
 
 set -u
+trap print_trap_error ERR
 
-# Get MGMT GKE cluster k8s context
-# gcloud container clusters get-credentials "${MGMT_GKE_CLUSTER_NAME}" \
-#   --project="${GCP_PROJECT_ID}" \
-#   --zone="${MGMT_GKE_CLUSTER_ZONE}"
-
-# bash -c "${script_dir}/helpers/revoke_cert.sh"
-
-delete_gke_cluster "${GCP_PROJECT_ID}" "${MGMT_GKE_CLUSTER_NAME}" "${MGMT_GKE_CLUSTER_ZONE}"
-delete_gke_cluster "${GCP_PROJECT_ID}" "${APP1_GKE_CLUSTER_NAME}" "${APP1_GKE_CLUSTER_ZONE}"
-# delete_gke_cluster "${GCP_PROJECT_ID}" "${APP2_GKE_CLUSTER_NAME}" "${APP2_GKE_CLUSTER_ZONE}"
-
-az aks delete \
-  --resource-group "${APP2_AKS_RESOURCE_GROUP}" \
-  --name "${APP2_K8S_CLUSTER_NAME}" \
-  --yes
-
-az group delete \
-  --name "${APP2_AKS_RESOURCE_GROUP}" \
-  --yes
+k8s::delete_cluster "${MGMT_K8S_TYPE}" "${MGMT_K8S_CLUSTER_NAME}" "${MGMT_K8S_CLUSTER_ZONE}"
+k8s::delete_cluster "${APP1_K8S_TYPE}" "${APP1_K8S_CLUSTER_NAME}" "${APP1_K8S_CLUSTER_ZONE}"
+k8s::delete_cluster "${APP2_K8S_TYPE}" "${APP2_K8S_CLUSTER_NAME}" "${APP2_K8S_CLUSTER_ZONE}"
 
 # Cleanup script generated files
 rm -rf "${script_dir}/generated"
