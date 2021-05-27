@@ -1,12 +1,15 @@
 # Tetrate Service Bridge (TSB) Demo
 
-Shows TSB using Istio Bookinfo application across two GKE clusters in different regions and a TSB Tier1 Gateway deployed in a third GKE cluster and region.
+Shows TSB using Istio Bookinfo application across two Kubernetes clusters in different
+regions and a TSB Tier1 Gateway deployed in a third Kubenetes cluster and region.
+Scripts can currently work with any combination of GKE and AKS. AWS EKS to be added soon.
 
 ## Requirements
 
 Tooling
 
-* gcloud
+* gcloud cli
+* az cli
 * kubectl
 * jq
 * tctl
