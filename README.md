@@ -23,3 +23,10 @@ Update `setenv.sh` in the repo's root directory with your information, and then 
 ```shell
 ./demo-create.sh
 ```
+
+To generate load on Bookinfo app to populate TSB metrics, run the following. It
+will default to sending traffing to Tier1 TSB Gateway in mgmt cluster.
+
+```shell
+./checker-bookinfo.sh
+```
