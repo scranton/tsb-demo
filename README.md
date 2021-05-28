@@ -30,3 +30,9 @@ will default to sending traffing to Tier1 TSB Gateway in mgmt cluster.
 ```shell
 ./checker-bookinfo.sh
 ```
+
+## Cleanup
+
+```shell
+./k8s-delete.sh
+```

@@ -56,21 +56,21 @@ function k8s::get_service_address() {
 # Outputs:
 #######################################
 function k8s::set_context() {
-  local k8s_cluster_type="$1"
-  local k8s_cluster_name="$2"
-  local k8s_cluster_zone="$3"
+  local _k8s_cluster_type="$1"
+  local _k8s_cluster_name="$2"
+  local _k8s_cluster_zone="$3"
 
-  case ${k8s_cluster_type} in
+  case ${_k8s_cluster_type} in
     gke)
-      gcloud container clusters get-credentials "${k8s_cluster_name}" \
+      gcloud container clusters get-credentials "${_k8s_cluster_name}" \
         --project="${GCP_PROJECT_ID}" \
-        --zone="${k8s_cluster_zone}"
+        --zone="${_k8s_cluster_zone}"
       ;;
 
     aks)
       az aks get-credentials \
-        --name "${k8s_cluster_name}" \
-        --resource-group "${k8s_cluster_name}-group" \
+        --name "${_k8s_cluster_name}" \
+        --resource-group "${_k8s_cluster_name}-group" \
         --overwrite-existing
       ;;
   esac
@@ -196,7 +196,7 @@ function k8s::create_cluster() {
         --resource-group "${aks_resource_group}" \
         --name "${cluster_name}" \
         --node-count 2 \
-        --node-vm-size 'Standard_D4_v3' \
+        --node-vm-size 'Standard_D4s_v3' \
         --enable-addons 'monitoring' \
         --generate-ssh-keys \
         --enable-cluster-autoscaler \
