@@ -192,9 +192,18 @@ function k8s::create_cluster() {
         --name "${aks_resource_group}" \
         --location "${region}"
 
+      az network vnet create \
+        --resource-group "${aks_resource_group}" \
+        --name "${cluster_name}-vnet" \
+        --subnet-name default
+
       az aks create \
         --resource-group "${aks_resource_group}" \
         --name "${cluster_name}" \
+        --network-plugin azure \
+        --docker-bridge-address 172.17.0.1/16 \
+        --dns-service-ip 10.2.0.10 \
+        --service-cidr 10.2.0.0/24 \
         --node-count 2 \
         --node-vm-size 'Standard_D4s_v3' \
         --enable-addons 'monitoring' \

@@ -1,0 +1,51 @@
+#cloud-config
+package_update: true
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+users:
+  - default
+  - name: istio-proxy
+    uid: 2000
+    groups: docker
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - <ssh pub key 1>
+manage-resolv-conf: true
+resolv_conf:
+  nameservers:
+    - '8.8.8.8'
+    - '8.8.4.4'
+write_files:
+- path: /etc/systemd/system/productpage.service
+  permissions: 0644
+  owner: root
+  content: |
+    [Unit]
+    Description=Start productpage docker container
+
+    [Service]
+    ExecStart=/usr/bin/docker run --user=2000 --name=productpage --publish 127.0.0.1:9080:9080 --env SERVICES_DOMAIN='bookinfo.svc.cluster.local' docker.io/istio/examples-bookinfo-productpage-v1:1.16.2
+    ExecStop=/usr/bin/docker stop productpage
+    ExecStopPost=/usr/bin/docker rm productpage
+
+runcmd:
+  - mkdir -p /etc/istio-proxy
+  - chmod 755 /etc/istio-proxy
+  - chown istio-proxy:istio-proxy /etc/istio-proxy
+  - apt-get remove docker docker-engine docker.io containerd runc
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl daemon-reload
+  - systemctl start docker
+  - systemctl enable docker
+  - systemctl start productpage
+  - systemctl enable productpage
+  - echo '127.0.0.2 details.bookinfo.svc.cluster.local' >> /etc/hosts
+  - echo '127.0.0.2 reviews.bookinfo.svc.cluster.local' >> /etc/hosts
+final_message: "The system is finally up, after ${UPTIME} seconds"

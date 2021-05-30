@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: bookinfo-productpage-no-iptables
+  namespace: bookinfo
+spec:
+  egress:
+    - bind: "127.0.0.2"
+      hosts:
+        - "./*"
+      captureMode: NONE
+  ingress:
+    - defaultEndpoint: "127.0.0.1:9080"
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+      captureMode: NONE
+  workloadSelector:
+    labels:
+      app: productpage
+      class: vm
