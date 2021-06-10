@@ -292,3 +292,20 @@ function dns::waitDNS() {
   fi
   return 0
 }
+
+function tsb::gen_cluster_config() {
+  local cluster_name=$1
+  local gen_dir=$2
+
+  tctl install manifest cluster-operators \
+    --registry "${DOCKER_REGISTRY}" \
+    >"${gen_dir}/clusteroperators.yaml"
+
+  tctl install manifest control-plane-secrets \
+    --allow-defaults \
+    --elastic-password='tsb-elastic-password' \
+    --elastic-username='tsb' \
+    --xcp-certs="$(tctl install cluster-certs --cluster="${cluster_name}")" \
+    --cluster="${cluster_name}" \
+    >"${gen_dir}/controlplane-secrets.yaml"
+}

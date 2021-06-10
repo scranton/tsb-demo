@@ -15,3 +15,4 @@ spec:
     app: productpage
     version: v3
   serviceAccount: bookinfo-productpage
+  network: myother

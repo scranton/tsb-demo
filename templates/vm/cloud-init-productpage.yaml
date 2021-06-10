@@ -28,7 +28,7 @@ write_files:
     Description=Start productpage docker container
 
     [Service]
-    ExecStart=/usr/bin/docker run --user=2000 --name=productpage --publish 127.0.0.1:9080:9080 --env SERVICES_DOMAIN='bookinfo.svc.cluster.local' docker.io/istio/examples-bookinfo-productpage-v1:1.16.2
+    ExecStart=/usr/bin/docker run --user=2000 --name=productpage --network='host' --env SERVICES_DOMAIN='bookinfo.svc.cluster.local' --env="HTTP_PROXY='http://127.0.0.2:9080'" gcr.io/cxteam-scottcranton-shared/examples-bookinfo-productpage-v1:1.16.2
     ExecStop=/usr/bin/docker stop productpage
     ExecStopPost=/usr/bin/docker rm productpage
 

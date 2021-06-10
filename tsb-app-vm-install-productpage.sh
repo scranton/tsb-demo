@@ -83,5 +83,8 @@ cp "${script_dir}/templates/vm/productpage-sidecar.yaml" "${gen_dir}/"
 
 kubectl apply --filename "${gen_dir}/productpage-sidecar.yaml"
 
+ssh-keyscan -H "${public_ip}" >> ~/.ssh/known_hosts
+ssh-copy-id -f "istio-proxy@${public_ip}"
+
 tctl x sidecar-bootstrap productpage-vm.bookinfo \
   --start-istio-proxy
