@@ -21,6 +21,48 @@ trap print_trap_error ERR
 # Get MGMT cluster k8s context
 k8s::set_context "${MGMT_K8S_TYPE}" "${MGMT_K8S_CLUSTER_NAME}" "${MGMT_K8S_CLUSTER_ZONE}"
 
+# Create PostgresSQL database
+print_info 'Creating Postgres DB...'
+
+readonly aks_resource_group="${MGMT_K8S_CLUSTER_NAME}-group"
+
+readonly postgres_username="tsb"
+readonly postgres_password="TetrateFTW321"
+# readonly postgres_password="tsb-postgres-password"
+readonly postgres_db_server="${MGMT_K8S_CLUSTER_NAME}-db-server"
+readonly postgres_db_name='tsb'
+# fqdn_postgres='postgres'
+
+az postgres server create \
+  --location "${MGMT_K8S_CLUSTER_ZONE}" \
+  --resource-group "${aks_resource_group}" \
+  --name "${postgres_db_server}" \
+  --admin-user "${postgres_username}" \
+  --admin-password "${postgres_password}" \
+  --version 11
+
+postgress_server_create_result=$(
+  az postgres server show \
+    --resource-group "${aks_resource_group}" \
+    --name "${postgres_db_server}"
+)
+printf "\nPostgres Server Create Result:\n%s\n\n" "${postgress_server_create_result}"
+
+fqdn_postgres=$(jq --raw-output '.fullyQualifiedDomainName' <<<"${postgress_server_create_result}")
+printf "\nPostgres FQDN %s" "${fqdn_postgres}"
+
+az postgres server firewall-rule create \
+  --resource-group "${aks_resource_group}" \
+  --server-name "${postgres_db_server}" \
+  --name AllowAll_2021-6-10_7-34-28 \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 255.255.255.255
+
+az postgres db create \
+  --resource-group "${aks_resource_group}" \
+  --server-name "${postgres_db_server}" \
+  --name "${postgres_db_name}"
+
 # Install Cert-Manager
 print_info 'Installing Cert Manager...'
 
@@ -65,8 +107,8 @@ tctl install manifest management-plane-secrets \
   --elastic-username="tsb" \
   --ldap-bind-dn="cn=admin,dc=tetrate,dc=io" \
   --ldap-bind-password="admin" \
-  --postgres-password="tsb-postgres-password" \
-  --postgres-username="tsb" \
+  --postgres-username="${postgres_username}@${postgres_db_server}" \
+  --postgres-password="${postgres_password}" \
   --tsb-admin-password="${MGMT_TSB_ADMIN_PASSWORD}" \
   --tsb-server-certificate="aaa" \
   --tsb-server-key="bbb" \
@@ -89,10 +131,28 @@ print_info 'Deploying TSB Management Plane...'
 
 sleep 60s
 
-cp "${script_dir}/templates/tsb/mp.yaml" "${gen_mgmt_dir}/"
-yq eval ".spec.hub |= \"${DOCKER_REGISTRY}\"" \
-  --inplace "${gen_mgmt_dir}/mp.yaml"
-kubectl apply --filename="${gen_mgmt_dir}/mp.yaml"
+# cp "${script_dir}/templates/tsb/mp.yaml" "${gen_mgmt_dir}/"
+# yq eval ".spec.hub |= \"${DOCKER_REGISTRY}\"" \
+#   --inplace "${gen_mgmt_dir}/mp.yaml"
+# kubectl apply --filename="${gen_mgmt_dir}/mp.yaml"
+kubectl apply --filename - <<EOF
+apiVersion: install.tetrate.io/v1alpha1
+kind: ManagementPlane
+metadata:
+  name: managementplane
+  namespace: tsb
+spec:
+  hub: ${DOCKER_REGISTRY}
+  components:
+    apiServer:
+      teamSyncSchedule: 0 * * * *
+    frontEnvoy:
+      port: 443
+  dataStore:
+    postgres:
+      address: "${fqdn_postgres}:5432"
+      name: "${postgres_db_name}"
+EOF
 
 print_waiting 'Waiting for TSB Management Plane to be ready...'
 
