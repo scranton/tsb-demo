@@ -17,7 +17,7 @@ kubectl label namespace bookinfo 'istio-injection=enabled'
 kubectl apply --namespace='bookinfo' \
   --filename="${script_dir}/bookinfo.yaml"
 
-until [[ $(kubectl get pods --namespace='bookinfo' | grep -c Running) -eq 6 ]]; do
+until [[ $(kubectl get pods --namespace='bookinfo' | grep -c Running) -ge 6 ]]; do
   echo 'Waiting for bookinfo app to deploy...'
   sleep 5s
 done

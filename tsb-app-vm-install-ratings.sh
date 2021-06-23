@@ -36,6 +36,8 @@ readonly az_resource_group="${k8s_cluster_name}-group"
 ssh_key=$(cat "${HOME}/.ssh/id_rsa.pub")
 readonly ssh_key
 
+# Create Linux VM
+
 cp "${script_dir}/templates/vm/cloud-init-ratings.yaml" "${gen_dir}/cloud-init.yaml"
 
 yq eval --inplace \
@@ -68,6 +70,8 @@ az vm open-port \
   --port 9080 \
   --name "${vm_name}"
 
+# Create WorkloadEntry Config
+
 cp "${script_dir}/templates/vm/ratings-workloadentry.yaml" "${gen_dir}/"
 
 yq eval --inplace \
@@ -79,12 +83,18 @@ yq eval --inplace \
 
 kubectl apply --filename "${gen_dir}/ratings-workloadentry.yaml"
 
+# Create Sidecar Config
+
 cp "${script_dir}/templates/vm/ratings-sidecar.yaml" "${gen_dir}/"
 
 kubectl apply --filename "${gen_dir}/ratings-sidecar.yaml"
 
+# Setup SSH access
 ssh-keyscan -H "${public_ip}" >> ~/.ssh/known_hosts
 ssh-copy-id -f "istio-proxy@${public_ip}"
 
+sleep 10s
+
+# Deploy VM Envoy Sidecar
 tctl x sidecar-bootstrap ratings-vm.bookinfo \
   --start-istio-proxy

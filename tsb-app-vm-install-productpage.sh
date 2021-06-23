@@ -36,6 +36,8 @@ readonly az_resource_group="${k8s_cluster_name}-group"
 ssh_key=$(cat "${HOME}/.ssh/id_rsa.pub")
 readonly ssh_key
 
+# Create Linux VM
+
 cp "${script_dir}/templates/vm/cloud-init-productpage.yaml" "${gen_dir}/cloud-init.yaml"
 
 yq eval --inplace \
@@ -65,8 +67,10 @@ az vm list-ip-addresses \
 
 az vm open-port \
   --resource-group "${az_resource_group}" \
-  --port 80 \
+  --port 80,9085 \
   --name "${vm_name}"
+
+# Create WorkloadEntry Config
 
 cp "${script_dir}/templates/vm/productpage-workloadentry.yaml" "${gen_dir}/"
 
@@ -79,12 +83,18 @@ yq eval --inplace \
 
 kubectl apply --filename "${gen_dir}/productpage-workloadentry.yaml"
 
+# Create Sidecar Config
+
 cp "${script_dir}/templates/vm/productpage-sidecar.yaml" "${gen_dir}/"
 
 kubectl apply --filename "${gen_dir}/productpage-sidecar.yaml"
 
+# Setup SSH access
 ssh-keyscan -H "${public_ip}" >> ~/.ssh/known_hosts
 ssh-copy-id -f "istio-proxy@${public_ip}"
 
+sleep 10s
+
+# Deploy VM Envoy Sidecar
 tctl x sidecar-bootstrap productpage-vm.bookinfo \
   --start-istio-proxy
